@@ -45,7 +45,6 @@ export const getMyWorkSpaces = async (
   next: NextFunction
 ) => {
   try {
-    console.log("ii", req.userId);
     const myWorkspaces = await WorkSpace.find({ coWorkers: req.userId }).select(
       "name coWorkers _id"
     );
@@ -62,11 +61,11 @@ export const saveCoWorkers = async (
 ) => {
   try {
     const { data } = req.body;
-    console.log("data", data);
+
     const { organizationId } = req.params;
 
     const creator = await User.findById(req.userId);
-    console.log("creator", creator);
+
     const workspace = await WorkSpace.findById(organizationId);
     if (!workspace) {
       return res
@@ -236,20 +235,24 @@ export const myWorkspace = async (
   next: NextFunction
 ) => {
   try {
+    //console.log("ananta");
     const { workspaceId } = req.params;
+    //console.log("req", req.userId);
+    const workspace = await WorkSpace.findOne({
+      _id: workspaceId,
+      coWorkers: req.userId,
+    }).populate("coWorkers", "_id username");
+    //console.log("workspace", workspace);
 
-    const workspace = await WorkSpace.findById(workspaceId).populate(
-      "coWorkers",
-      "_id username"
-    );
-    console.log("id", workspaceId);
+    if (!workspace) {
+      return res.status(400).json({ success: false, message: "not found" });
+    }
     const channelsOfWorkSpace = await Channel.find({
       organisation: workspaceId,
       collaborators: req.userId,
     }).select("name");
 
-    console.log("chanels", channelsOfWorkSpace);
-
+    //console.log("channelsOfWorkSpace", channelsOfWorkSpace);
     const modifiedData = {
       _id: workspace?._id,
       owner: workspace?.owner,
@@ -258,7 +261,6 @@ export const myWorkspace = async (
       channels: channelsOfWorkSpace,
     };
 
-    console.log("workspace", workspace);
     return res.status(200).json({ success: true, workspace: modifiedData });
   } catch (error) {
     next(error);
