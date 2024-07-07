@@ -11,10 +11,7 @@ export const newChat = async (
   try {
     const { _id, type, organizationId } = req.body;
     const userId = req.userId;
-    console.log("type", type);
-    console.log("type", _id);
     if (type === "channel") {
-      console.log("hello");
       const channel = await Channel.findById(_id);
 
       if (!channel) {
@@ -42,8 +39,6 @@ export const newChat = async (
           updatedAt: new Date(),
         });
         await channelChat.populate("collaborators", "username");
-
-        console.log("channelChat", channelChat);
       }
       // Additional logic for channels can be added here
       return res.status(200).json({ success: true, chat: channelChat });
@@ -63,10 +58,10 @@ export const newChat = async (
       }
 
       let chat = await Chat.findOne({
-        // collaborators: { $all: [userId, _id] },
+        collaborators: { $all: [userId, _id] },
         isGroup: false,
       }).populate("collaborators", "username");
-      console.log("chat11111", chat);
+
       if (!chat) {
         chat = await Chat.create({
           name: "",

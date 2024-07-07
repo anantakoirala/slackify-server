@@ -252,12 +252,17 @@ export const myWorkspace = async (
       collaborators: req.userId,
     }).select("name");
 
+    // Filter out req.userId from the coWorkers list
+    const filteredCoWorkers = workspace.coWorkers.filter(
+      (coWorker: any) => coWorker._id.toString() !== req.userId?.toString()
+    );
+
     //console.log("channelsOfWorkSpace", channelsOfWorkSpace);
     const modifiedData = {
       _id: workspace?._id,
       owner: workspace?.owner,
       name: workspace?.name,
-      coWorkers: workspace?.coWorkers,
+      coWorkers: filteredCoWorkers,
       channels: channelsOfWorkSpace,
     };
 

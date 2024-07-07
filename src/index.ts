@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Response } from "express";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -32,7 +32,13 @@ const io = new Server(httpServer, {
 });
 
 const userSocketIds = new Map();
+
+const userRoomSocketId = new Map();
+
 app.use(cookieParser());
+
+// Store users' sockets by their user IDs
+const users: any = {};
 
 // console.log("Google Client Secret:", process.env.GOOGLE_CLIENT_SECRET);
 // console.log("Client URL:", process.env.CLIENT_URL);
@@ -97,6 +103,9 @@ io.use(async (socket, next) => {
 });
 
 connectDB();
+app.use("/", (req, res: Response) => {
+  res.json("hello");
+});
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workspace", workspaceRoutes);
 app.use("/api/v1/channel", channleRoutes);
@@ -108,14 +117,13 @@ io.on("connection", (socket) => {
   const user = socket.user;
 
   userSocketIds.set(user._id.toString(), socket.id);
-  console.log(userSocketIds);
   socket.on(NEW_MESSAAGE, async ({ chatId, members, message }) => {
     const messageForRealTIme = {
       content: message,
       attachments: [],
       sender: {
         _id: user._id,
-        name: user.name,
+        username: user.username,
       },
       chat: chatId,
       createdAt: new Date().toISOString(),
@@ -130,13 +138,63 @@ io.on("connection", (socket) => {
     // console.log("emmiting message for real time", messageForRealTIme);
 
     const membersSockets = getSockets(members);
-    console.log("member_sockets", membersSockets);
+
     io.to(membersSockets).emit(NEW_MESSAAGE, {
       chatId,
       message: messageForRealTIme,
     });
 
     // console.log("new message", messageForRealTIme);
+  });
+
+  socket.on("online", (data) => {});
+  // Event handler for joining a room
+  socket.on("join-room", ({ roomId, userId, targetUserId }) => {
+    console.log("room_id", roomId);
+    console.log("userId", userId);
+    // Join the specified room
+    socket.join(roomId);
+    // Store the user's socket by their user ID
+    users[userId] = socket;
+    // Broadcast the "join-room" event to notify other users in the room
+    socket.to(roomId).emit("join-room", { roomId, otherUserId: userId });
+
+    console.log(`User ${userId} joined room ${roomId}`);
+  });
+
+  // Event handler for sending an SDP offer to another user
+  socket.on("offer", ({ offer, targetUserId }) => {
+    // Find the target user's socket by their user ID
+    const targetSocket = users[targetUserId];
+    if (targetSocket) {
+      targetSocket.emit("offer", { offer, senderUserId: targetUserId });
+    }
+  });
+
+  // Event handler for sending an SDP answer to another user
+  socket.on("answer", ({ answer, senderUserId }) => {
+    socket.broadcast.emit("answer", { answer, senderUserId });
+  });
+
+  // Event handler for sending ICE candidates to the appropriate user (the answerer)
+  socket.on("ice-candidate", ({ candidate, senderUserId }) => {
+    // Find the target user's socket by their user ID
+    const targetSocket = users[senderUserId];
+    if (targetSocket) {
+      targetSocket.emit("ice-candidate", candidate, senderUserId);
+    }
+  });
+
+  // Event handler for leaving a room
+  socket.on("room-leave", ({ roomId, userId }) => {
+    console.log("roomleave", roomId);
+    console.log("roomleacve-userId", userId);
+    socket.leave(roomId);
+    // Remove the user's socket from the users object
+    delete users[userId];
+    // Broadcast the "room-leave" event to notify other users in the room
+    socket.to(roomId).emit("room-leave", { roomId, leftUserId: userId });
+    console.log(`User ${userId} left room ${roomId}`);
   });
 });
 
