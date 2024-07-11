@@ -18,6 +18,9 @@ import { NEW_MESSAAGE } from "./constants";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import User from "./models/user";
 import { getSockets } from "./utils/getSockets";
+import WorkSpace from "./models/workspace";
+import Chat from "./models/chat";
+import Message from "./models/message";
 
 const app = express();
 
@@ -103,13 +106,16 @@ io.use(async (socket, next) => {
 });
 
 connectDB();
-app.use("/", (req, res: Response) => {
-  res.json("hello");
-});
+// app.use("/", (req, res: Response) => {
+//   res.json("hello");
+// });
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/workspace", workspaceRoutes);
 app.use("/api/v1/channel", channleRoutes);
 app.use("/api/v1/chat", chatRoutes);
+app.use("/", (req, res: Response) => {
+  res.json("hello");
+});
 
 app.use(errorResponse);
 
@@ -117,6 +123,7 @@ io.on("connection", (socket) => {
   const user = socket.user;
 
   userSocketIds.set(user._id.toString(), socket.id);
+  console.log(`user ${user._id} joind socket ${socket.id}`);
   socket.on(NEW_MESSAAGE, async ({ chatId, members, message }) => {
     const messageForRealTIme = {
       content: message,
@@ -145,21 +152,45 @@ io.on("connection", (socket) => {
     });
 
     // console.log("new message", messageForRealTIme);
+    await Message.create(messageForDB);
   });
 
   socket.on("online", (data) => {});
   // Event handler for joining a room
   socket.on("join-room", ({ roomId, userId, targetUserId }) => {
-    console.log("room_id", roomId);
-    console.log("userId", userId);
     // Join the specified room
     socket.join(roomId);
     // Store the user's socket by their user ID
     users[userId] = socket;
     // Broadcast the "join-room" event to notify other users in the room
-    socket.to(roomId).emit("join-room", { roomId, otherUserId: userId });
+    socket
+      .to(roomId)
+      .emit("join-room", { roomId, otherUserId: userId, targetUserId });
 
     console.log(`User ${userId} joined room ${roomId}`);
+  });
+
+  socket.on("incomming-call", async ({ chatId, members, targetId }) => {
+    const checkChat = await Chat.findOne({
+      _id: chatId,
+    });
+    //console.log("checkOrganization", checkOrganization);
+    if (checkChat) {
+      const messageForRealTIme = {
+        sender: {
+          _id: user._id,
+          username: user.username,
+        },
+        chat: chatId,
+        targetId: targetId,
+        senderId: user._id,
+      };
+      const membersSockets = getSockets(members);
+      io.to(membersSockets).emit("incomming-call", {
+        chatId,
+        message: messageForRealTIme,
+      });
+    }
   });
 
   // Event handler for sending an SDP offer to another user
@@ -187,8 +218,6 @@ io.on("connection", (socket) => {
 
   // Event handler for leaving a room
   socket.on("room-leave", ({ roomId, userId }) => {
-    console.log("roomleave", roomId);
-    console.log("roomleacve-userId", userId);
     socket.leave(roomId);
     // Remove the user's socket from the users object
     delete users[userId];

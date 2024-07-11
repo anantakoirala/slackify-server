@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import Channel from "../models/chanel";
 import Chat from "../models/chat";
 import User from "../models/user";
+import Message from "../models/message";
+import { me } from "./authController";
 
 export const newChat = async (
   req: Request,
@@ -101,6 +103,45 @@ export const newChat = async (
     return res.status(400).json({ success: false, message: "Invalid type" });
   } catch (error) {
     console.log(error);
+    next(error);
+  }
+};
+
+export const getMessages = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const chatId = req.params.id;
+    console.log("cahtId", chatId);
+    const page = Number(req.query.page) || 1;
+    const resultPerPage = Number(req.query.limit) || 10;
+    const [messages, totalNoOfMessages] = await Promise.all([
+      Message.find({ chat: chatId })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * resultPerPage)
+        .limit(resultPerPage)
+        .populate("sender", "username"),
+      Message.countDocuments({ chat: chatId }),
+    ]);
+
+    console.log("message", messages);
+
+    const transformedMessages = messages.map((message) => ({
+      content: message.content,
+      attachments: [],
+      sender: message.sender,
+      chat: chatId,
+      createdAt: message.createdAt,
+    }));
+
+    const totalPages = Math.ceil(totalNoOfMessages / resultPerPage) || 0;
+
+    return res
+      .status(200)
+      .json({ success: true, messages: transformedMessages, totalPages, page });
+  } catch (error) {
     next(error);
   }
 };

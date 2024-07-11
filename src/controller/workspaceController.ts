@@ -45,6 +45,7 @@ export const getMyWorkSpaces = async (
   next: NextFunction
 ) => {
   try {
+    console.log("my-workspaces");
     const myWorkspaces = await WorkSpace.find({ coWorkers: req.userId }).select(
       "name coWorkers _id"
     );
