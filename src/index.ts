@@ -119,11 +119,30 @@ app.use("/", (req, res: Response) => {
 
 app.use(errorResponse);
 
+const onlineUsers = new Map();
+
 io.on("connection", (socket) => {
   const user = socket.user;
 
   userSocketIds.set(user._id.toString(), socket.id);
-  console.log(`user ${user._id} joind socket ${socket.id}`);
+
+  // When a user logs in or joins, store their userId or username
+  socket.on("userJoined", ({ organizationId }) => {
+    if (!organizationId) return;
+
+    socket.join(organizationId);
+    // Add user to the organization-specific list
+    if (!onlineUsers.has(organizationId)) {
+      onlineUsers.set(organizationId, new Map());
+    }
+    const orgUsers = onlineUsers.get(organizationId);
+    orgUsers.set(user._id.toString(), socket.id);
+
+    io.to(organizationId).emit(
+      "updateUserList",
+      Array.from(onlineUsers.get(organizationId).keys())
+    );
+  });
   socket.on(NEW_MESSAAGE, async ({ chatId, members, message }) => {
     const messageForRealTIme = {
       content: message,
@@ -224,6 +243,12 @@ io.on("connection", (socket) => {
     // Broadcast the "room-leave" event to notify other users in the room
     socket.to(roomId).emit("room-leave", { roomId, leftUserId: userId });
     console.log(`User ${userId} left room ${roomId}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("disconnected", socket.id);
+    userSocketIds.delete(user._id.toString());
+    io.emit("updateUserList", Array.from(userSocketIds.keys()));
   });
 });
 

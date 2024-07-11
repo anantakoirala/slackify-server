@@ -126,8 +126,6 @@ export const getMessages = async (
       Message.countDocuments({ chat: chatId }),
     ]);
 
-    console.log("message", messages);
-
     const transformedMessages = messages.map((message) => ({
       content: message.content,
       attachments: [],
