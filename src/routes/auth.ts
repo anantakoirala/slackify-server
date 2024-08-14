@@ -2,6 +2,7 @@ import express from "express";
 import {
   googleCallback,
   login,
+  logout,
   me,
   register,
   verify,
@@ -25,5 +26,6 @@ router.get(
 
 router.get("/google/callback", googleCallback);
 router.get("/me", authMiddleware, me);
+router.get("/logout", authMiddleware, logout);
 
 export default router;

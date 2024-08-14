@@ -125,6 +125,12 @@ export const workspaceLogin = async (
       });
     }
     const invitation = await checkInviation(LT, email);
+    if (invitation?.verificationCode) {
+      return res.status(400).json({
+        success: false,
+        message: "this link is expired",
+      });
+    }
     //console.log("invitation", invitation);
     //console.log("invitation", invitation);
     if (!invitation) {
@@ -327,4 +333,20 @@ export const googleCallback = async (
 export const me = async (req: Request, res: Response) => {
   const user = await User.findById(req.userId);
   return res.status(200).json({ message: "succces", user });
+};
+
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    res.clearCookie("token");
+    return res
+      .status(200)
+      .json({ success: "true", message: "logout succcessfully" });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
 };

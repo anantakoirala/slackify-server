@@ -45,7 +45,6 @@ export const getMyWorkSpaces = async (
   next: NextFunction
 ) => {
   try {
-    console.log("my-workspaces");
     const myWorkspaces = await WorkSpace.find({ coWorkers: req.userId }).select(
       "name coWorkers _id"
     );
@@ -266,7 +265,7 @@ export const myWorkspace = async (
       coWorkers: filteredCoWorkers,
       channels: channelsOfWorkSpace,
     };
-
+    req.organizationId = workspace?._id.toString();
     return res.status(200).json({ success: true, workspace: modifiedData });
   } catch (error) {
     next(error);

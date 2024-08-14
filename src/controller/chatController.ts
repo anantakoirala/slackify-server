@@ -4,6 +4,7 @@ import Chat from "../models/chat";
 import User from "../models/user";
 import Message from "../models/message";
 import { me } from "./authController";
+import mongoose from "mongoose";
 
 export const newChat = async (
   req: Request,
@@ -12,7 +13,14 @@ export const newChat = async (
 ) => {
   try {
     const { _id, type, organizationId } = req.body;
+
     const userId = req.userId;
+
+    if (!organizationId || !mongoose.Types.ObjectId.isValid(organizationId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid organizationId" });
+    }
     if (type === "channel") {
       const channel = await Channel.findById(_id);
 
@@ -62,6 +70,7 @@ export const newChat = async (
       let chat = await Chat.findOne({
         collaborators: { $all: [userId, _id] },
         isGroup: false,
+        organisation: organizationId,
       }).populate("collaborators", "username");
 
       if (!chat) {
@@ -114,7 +123,7 @@ export const getMessages = async (
 ) => {
   try {
     const chatId = req.params.id;
-    console.log("cahtId", chatId);
+
     const page = Number(req.query.page) || 1;
     const resultPerPage = Number(req.query.limit) || 10;
     const [messages, totalNoOfMessages] = await Promise.all([

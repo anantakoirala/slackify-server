@@ -36,6 +36,8 @@
     "nodemailer": "^6.9.13",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "peer": "^1.0.2",
+    "peerjs": "^1.5.4",
     "randomatic": "^3.1.1",
     "socket.io": "^4.7.5"
   }
