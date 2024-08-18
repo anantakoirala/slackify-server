@@ -21,6 +21,7 @@ import { getSockets, getMultipleSockets } from "./utils/getSockets";
 import WorkSpace from "./models/workspace";
 import Chat from "./models/chat";
 import Message from "./models/message";
+import { checkUserStatus } from "./utils/checkUserStatus";
 const { ExpressPeerServer } = require("peer");
 
 const app = express();
@@ -129,6 +130,11 @@ app.use(errorResponse);
 const onlineUsers = new Map();
 const videoChatRoom = new Map();
 const chatIdList = new Map();
+const rooms: {
+  [roomId: string]: {
+    [userId: string]: string[];
+  };
+} = {};
 
 io.on("connection", (socket) => {
   const { organizationId } = socket.handshake.query;
@@ -202,78 +208,109 @@ io.on("connection", (socket) => {
 
   // Event handler for joining a room
   socket.on("join-room", ({ roomId, userId, peerId }) => {
-    console.log("room-id", roomId);
+    console.log("roomId", roomId);
+    //const videoChatRoomUsers = videoChatRoom.get(roomId);
+
     // Join the specified room
     socket.join(roomId);
-    // Store the user's socket by their user ID
-    users[userId] = socket;
+
+    if (!rooms[roomId]) {
+      rooms[roomId] = {};
+    }
+
+    // Ensure the user exists in the room
+    if (!rooms[roomId][userId]) {
+      rooms[roomId][userId] = [];
+    }
+
+    // Add the socket id to the user's array
+    rooms[roomId][userId].push(socket.id);
+    //console.log("rooms", rooms);
     // Broadcast the "join-room" event to notify other users in the room
     socket.to(roomId).emit("join-room", { roomId, newUserId: userId, peerId });
-
-    // socket
-    //   .to(roomId)
-    //   .emit("join-room", { roomId, otherUserId: userId, targetUserId });
 
     console.log(`User ${userId} joined room ${roomId}`);
   });
 
   socket.on("incomming-call", async ({ chatId }) => {
+    console.log("incomming-call chatId", chatId);
+    console.log("incomming-call");
+    const userId = user._id.toString();
+
+    // console.log("result", result);
+    // console.log("roomof my", rooms[chatId]);
     if (chatId) {
-      const chat = await Chat.findById(chatId).populate(
-        "collaborators",
-        "username _id"
-      );
-
-      let newTargetId;
-      if (!chat) {
-        return;
-      } else {
-        const chatMembers = chat.collaborators as UserSchemaType[];
-        const res = chatMembers.map((chat) => chat._id.toString());
-
-        newTargetId = res.filter(
-          (chatUser) => chatUser !== user._id.toString()
+      const result = checkUserStatus(userId, rooms);
+      console.log("############################################");
+      console.log("result", result);
+      console.log("############################################");
+      if (!result.isCompletePair) {
+        const chat = await Chat.findById(chatId).populate(
+          "collaborators",
+          "username _id"
         );
-      }
-      // Add user to the organization-specific list
-      if (!videoChatRoom.has(chatId)) {
-        videoChatRoom.set(chatId, new Map());
-      }
-      const videoChatRoomUsers = videoChatRoom.get(chatId);
-      chatIdList.set(`${organizationId}-${user._id}`, chatId);
-      videoChatRoomUsers.set(user._id.toString(), socket.id);
 
-      const messageForRealTIme = {
-        attachments: [],
-        sender: {
-          _id: user._id,
-          username: user.username,
-        },
-        chat: chatId,
-        organizationId,
-        createdAt: new Date().toISOString(),
-      };
+        console.log("############################################");
+        console.log("chat", chat);
+        console.log("############################################");
 
-      const socketIds = onlineUsers.get(organizationId);
+        let newTargetId;
+        if (!chat) {
+          return;
+        } else {
+          const chatMembers = chat.collaborators as UserSchemaType[];
+          const res = chatMembers.map((chat) => chat._id.toString());
 
-      const membersSockets = getSockets(organizationId as string, newTargetId);
-      const multiplemembersSockets = getMultipleSockets(
-        organizationId as string,
-        newTargetId
-      );
+          newTargetId = res.filter(
+            (chatUser) => chatUser !== user._id.toString()
+          );
+        }
+        // Add user to the organization-specific list
+        if (!videoChatRoom.has(chatId)) {
+          videoChatRoom.set(chatId, new Map());
+        }
+        const videoChatRoomUsers = videoChatRoom.get(chatId);
 
-      const userInChatRoom = Array.from(videoChatRoom.get(chatId).keys());
+        chatIdList.set(`${organizationId}-${user._id}`, chatId);
+        videoChatRoomUsers.set(user._id.toString(), socket.id);
 
-      const isThere = newTargetId.some((targetId) =>
-        userInChatRoom.includes(targetId)
-      );
-      //console.log("isThere", isThere);
-      if (!isThere) {
-        if (multiplemembersSockets.length > 0) {
-          io.to(multiplemembersSockets).emit("incomming-call", {
-            chatId,
-            message: messageForRealTIme,
-          });
+        const messageForRealTIme = {
+          attachments: [],
+          sender: {
+            _id: user._id,
+            username: user.username,
+          },
+          chat: chatId,
+          organizationId,
+          createdAt: new Date().toISOString(),
+        };
+
+        const socketIds = onlineUsers.get(organizationId);
+
+        const membersSockets = getSockets(
+          organizationId as string,
+          newTargetId
+        );
+        const multiplemembersSockets = getMultipleSockets(
+          organizationId as string,
+          newTargetId
+        );
+
+        const userInChatRoom = Array.from(videoChatRoom.get(chatId).keys());
+
+        const isThere = newTargetId.some((targetId) =>
+          userInChatRoom.includes(targetId)
+        );
+        //console.log("isThere", isThere);
+        if (!isThere) {
+          console.log("isthere", isThere);
+          if (multiplemembersSockets.length > 0) {
+            console.log("multiplemembersSockets", multiplemembersSockets);
+            io.to(multiplemembersSockets).emit("incomming-call", {
+              chatId,
+              message: messageForRealTIme,
+            });
+          }
         }
       }
     } else {
@@ -298,6 +335,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("end-call", async ({ roomId }) => {
+    const userId = user._id.toString();
     if (Array.from(videoChatRoom).length > 0) {
       const chat = await Chat.findById(roomId).populate(
         "collaborators",
@@ -317,7 +355,7 @@ io.on("connection", (socket) => {
             organizationId as string,
             newTargetId
           );
-          console.log("multiple", multiplemembersSockets);
+
           io.to(multiplemembersSockets).emit("end-call");
         }
 
@@ -326,6 +364,25 @@ io.on("connection", (socket) => {
         const chatId = chatIdList.get(key);
 
         videoChatRoom.delete(chatId);
+        //delete roomId from rooms
+        if (rooms[roomId]) {
+          delete rooms[roomId];
+          // Check if the user exists in the room
+          // if (rooms[roomId][userId]) {
+          //   // Remove the user's sockets
+          //   delete rooms[roomId][userId];
+
+          //   // Check if the room is now empty (no users left)
+          //   if (Object.keys(rooms[roomId]).length === 0) {
+          //     // Remove the room if it is empty
+          //     delete rooms[roomId];
+          //   }
+          // } else {
+          //   console.log(`User ${userId} not found in room ${roomId}.`);
+          // }
+        } else {
+          //console.log(`Room ${roomId} does not exist.`);
+        }
       }
     }
   });
@@ -373,7 +430,7 @@ io.on("connection", (socket) => {
     const key = `${organizationId}-${user._id}`;
 
     const chatId = chatIdList.get(key);
-    console.log("chatId", chatId);
+
     const chat = await Chat.findById(chatId).populate(
       "collaborators",
       "username _id"
@@ -398,8 +455,34 @@ io.on("connection", (socket) => {
     }
 
     videoChatRoom.delete(chatId);
+    for (const roomId in rooms) {
+      for (const userId in rooms[roomId]) {
+        const index = rooms[roomId][userId].indexOf(socket.id);
+        if (index !== -1) {
+          // Remove the socket ID from the user's array
+          rooms[roomId][userId].splice(index, 1);
+
+          // If the user's array is empty, remove the user from the room
+          if (rooms[roomId][userId].length === 0) {
+            delete rooms[roomId][userId];
+          }
+
+          // If the room is empty (no users left), delete the room
+          if (Object.keys(rooms[roomId]).length === 0) {
+            delete rooms[roomId];
+          }
+
+          socket.to(roomId).emit("user-left", { userId, socketId: socket.id });
+          break;
+        }
+      }
+    }
+
     // Remove the user's socket ID from the global userSocketIds map
     userSocketIds.delete(userId);
+    socket.to(socket.id).emit("connection-lost", () => {
+      // console.log("connection lost");
+    });
   });
 });
 
