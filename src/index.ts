@@ -72,14 +72,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 //app.use(passport.session());
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"], // Specify the allowed methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Specify the allowed headers
-  })
-);
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL,
+//     credentials: true,
+//     methods: ["GET", "POST", "PUT", "DELETE"], // Specify the allowed methods
+//     allowedHeaders: ["Content-Type", "Authorization"], // Specify the allowed headers
+//   })
+// );
 
 declare module "socket.io" {
   interface Socket {
