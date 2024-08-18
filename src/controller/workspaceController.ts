@@ -96,9 +96,11 @@ export const saveCoWorkers = async (
           const invitation = new Invitation(invitationData[i]);
           await invitation.save();
 
-          const invitationLink = `${process.env.CLIENT_URL}/join/invite/${
-            invitationData[i].token
-          }/${workspace?.name?.split(" ").join("-")}`;
+          const invitationLink = `${
+            process.env.CLIENT_URL
+          }/workspace/join/invite/${invitationData[i].token}/${workspace?.name
+            ?.split(" ")
+            .join("-")}`;
           sendEmail(
             data[i],
             `${creator?.email} has invited you to work with them in Slack`,

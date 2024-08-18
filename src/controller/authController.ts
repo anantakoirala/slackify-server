@@ -68,7 +68,9 @@ export const login = async (
     }
 
     const user = await User.findOne({ email });
+    console.log("user", user);
     if (user) {
+      console.log("chito");
       try {
         let verificationCode = "";
         if (user?.getVerificationCode) {
@@ -92,15 +94,16 @@ export const login = async (
         await user.save({ validateBeforeSave: false });
         next(error);
       }
+    } else {
+      return res
+        .status(404)
+
+        .json({ success: false, message: "User not found" });
     }
-    return res
-      .status(200)
-      .json({ success: true, message: "login successfull" });
   } catch (error) {
     console.log(error);
     next(error);
   }
-  res.status(200).json({ message: "success" });
 };
 
 const checkInviation = async (token: string, email: string) => {
