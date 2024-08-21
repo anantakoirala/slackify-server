@@ -117,13 +117,13 @@ io.use(async (socket, next) => {
 });
 
 connectDB();
-// app.use("/", (req, res: Response) => {
-//   res.json("hello");
-// });
-app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/workspace", workspaceRoutes);
-app.use("/api/v1/channel", channleRoutes);
-app.use("/api/v1/chat", chatRoutes);
+app.use("/", (req, res: Response) => {
+  res.json("hello");
+});
+// app.use("/api/v1/auth", authRoutes);
+// app.use("/api/v1/workspace", workspaceRoutes);
+// app.use("/api/v1/channel", channleRoutes);
+// app.use("/api/v1/chat", chatRoutes);
 
 app.use(errorResponse);
 
