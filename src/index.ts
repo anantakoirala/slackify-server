@@ -28,6 +28,17 @@ const app = express();
 
 const httpServer = createServer(app);
 
+httpServer.listen("7000", () => {
+  console.log("app listening in port 7000");
+});
+
+const io = new Server(httpServer, {
+  /* options */
+  cors: {
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  },
+});
 // Create a PeerJS server
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
@@ -62,21 +73,11 @@ app.use(
   })
 );
 
-const io = new Server(httpServer, {
-  /* options */
-  cors: {
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  },
-});
-
 declare module "socket.io" {
   interface Socket {
     user?: any; // Adjust the type as per your user model
   }
 }
-
-io.listen(4000);
 
 io.use(async (socket, next) => {
   const cookieHeader = socket.handshake.headers.cookie;
@@ -484,10 +485,6 @@ io.on("connection", (socket) => {
       // console.log("connection lost");
     });
   });
-});
-
-httpServer.listen("7000", () => {
-  console.log("app listening in port 7000");
 });
 
 export { userSocketIds, onlineUsers };
