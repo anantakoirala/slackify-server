@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Response, Request } from "express";
 import {
   googleCallback,
   login,
@@ -12,6 +12,9 @@ import passport from "passport";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = express.Router();
+router.get("/test", (req: Request, res: Response) => {
+  res.status(200).json({ success: true, message: "hello test" });
+});
 router.post("/login", login);
 router.post("/w-login", workspaceLogin);
 router.post("/verify", verify);
