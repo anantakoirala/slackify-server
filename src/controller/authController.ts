@@ -271,6 +271,7 @@ export const verify = async (
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
           httpOnly: true,
           secure: true,
+          sameSite: "none",
         })
         .json({
           success: true,
@@ -320,6 +321,7 @@ export const googleCallback = async (
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
           httpOnly: true,
           secure: true,
+          sameSite: "none",
         });
         return res.redirect(`${process.env.CLIENT_URL}`);
       } else {
