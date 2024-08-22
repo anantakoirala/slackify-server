@@ -346,7 +346,9 @@ export const logout = async (
   next: NextFunction
 ) => {
   try {
+    console.log("Before clearing:", req.cookies.token);
     res.clearCookie("token");
+    console.log("After clearing:", req.cookies.token);
     return res
       .status(200)
       .json({ success: "true", message: "logout succcessfully" });
