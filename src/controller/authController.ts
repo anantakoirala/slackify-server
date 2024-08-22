@@ -271,6 +271,7 @@ export const verify = async (
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
           httpOnly: true,
           secure: true,
+          domain: process.env.COOKIE_DOMAIN,
           sameSite: "none",
         })
         .json({
@@ -321,6 +322,7 @@ export const googleCallback = async (
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
           httpOnly: true,
           secure: true,
+          domain: process.env.COOKIE_DOMAIN,
           sameSite: "none",
         });
         return res.redirect(`${process.env.CLIENT_URL}`);
@@ -349,6 +351,7 @@ export const logout = async (
     console.log("Before clearing:", req.cookies.token);
     res.clearCookie("token", {
       path: "/",
+      httpOnly: true,
       domain: process.env.COOKIE_DOMAIN, // or the appropriate domain for your frontend
       secure: true,
       sameSite: "none",
