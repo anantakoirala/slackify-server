@@ -265,15 +265,22 @@ export const verify = async (
     }
     if (user) {
       const token = authToken(user._id.toString());
-      generateCookie(res, token);
-
-      res.status(200).json({
-        success: true,
-        data: {
-          username: user.username,
-          email: user.email,
-        },
-      });
+      res
+        .status(200)
+        .cookie("token", token, {
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          httpOnly: true,
+          secure: true,
+          domain: process.env.COOKIE_DOMAIN,
+          sameSite: "none",
+        })
+        .json({
+          success: true,
+          data: {
+            username: user.username,
+            email: user.email,
+          },
+        });
 
       user.loginVerificationCode = undefined;
       user.loginVerificationCodeExpires = undefined;
@@ -284,18 +291,6 @@ export const verify = async (
   }
 };
 
-function generateCookie(res: Response, token: string) {
-  const isDevelopment = process.env.NODE_ENV === "development";
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    path: "/",
-    domain: isDevelopment ? "localhost" : undefined, // Domain only for development
-    secure: !isDevelopment, // Secure is true in production
-    sameSite: isDevelopment ? "lax" : "none", // sameSite depends on environment
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-  });
-}
 // @desc    Google OAuth Callback
 // @route   GET /auth/google/callback
 // @access  Public
@@ -323,15 +318,13 @@ export const googleCallback = async (
       const userData = await User.findOne({ googleId: user.googleId }); //const token = user.getSignedJwtToken();
       if (userData) {
         const token = authToken(userData._id.toString());
-        // res.cookie("token", token, {
-        //   expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        //   httpOnly: true,
-        //   secure: true,
-        //   domain: process.env.COOKIE_DOMAIN,
-        //   sameSite: "none",
-        // });
-
-        generateCookie(res, token);
+        res.cookie("token", token, {
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          httpOnly: true,
+          secure: true,
+          domain: process.env.COOKIE_DOMAIN,
+          sameSite: "none",
+        });
         return res.redirect(`${process.env.CLIENT_URL}`);
       } else {
         res
