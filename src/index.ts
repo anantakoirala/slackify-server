@@ -389,6 +389,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", async (reason) => {
+    console.log("disconnected", socket.id);
     const organizationId = socket.handshake.query.organizationId as string;
     const userId = user._id.toString();
 
