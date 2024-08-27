@@ -42,6 +42,7 @@ const io = new Server(httpServer, {
 // Create a PeerJS server
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
+  port: 7000,
   allow_discovery: true,
 });
 
