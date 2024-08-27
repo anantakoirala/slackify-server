@@ -356,13 +356,14 @@ export const logout = async (
 ) => {
   try {
     console.log("Before clearing:", req.cookies.token);
-    res.clearCookie("token", {
-      path: "/",
-      httpOnly: true,
-      domain: process.env.COOKIE_DOMAIN, // or the appropriate domain for your frontend
-      secure: true,
-      sameSite: "none",
-    });
+    res.clearCookie("token");
+    // res.clearCookie("token", {
+    //   path: "/",
+    //   httpOnly: true,
+    //   domain: process.env.COOKIE_DOMAIN, // or the appropriate domain for your frontend
+    //   secure: true,
+    //   sameSite: "none",
+    // });
     console.log("After clearing:", req.cookies.token);
     return res
       .status(200)

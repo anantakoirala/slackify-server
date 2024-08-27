@@ -17,7 +17,7 @@ export const create = async (
 ) => {
   try {
     const { name, organisationId } = req.body;
-    console.log("organizationId", organisationId);
+    //console.log("organizationId", organisationId);
     if (!name || !organisationId) {
       return res
         .status(400)
@@ -154,7 +154,7 @@ export const getChannelUser = async (
       _id: channelId,
       organisation: organisationId,
     }).populate<{ collaborators: User[] }>("collaborators", "username email");
-
+    console.log("channel", channel);
     if (!channel) {
       return res
         .status(404)

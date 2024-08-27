@@ -7,13 +7,13 @@ export const authMiddleware = async (
   next: NextFunction
 ) => {
   const cookie = req.cookies.token;
-  console.log("cookie", cookie);
+  // console.log("cookie", cookie);
   if (!cookie) {
     return res.status(401).json({ message: "unauthorized" });
   }
 
   const userId = jwt.verify(cookie, process.env.JWT_SECRET as string);
-  console.log("userId", userId);
+  
   if (!userId) {
     return res.status(401).json({ message: "unauthorized" });
   }
