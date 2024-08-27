@@ -44,6 +44,7 @@ const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
   port: 7000,
   allow_discovery: true,
+  secure: true,
 });
 
 app.use("/peerjs", peerServer);
